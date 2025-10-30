@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Tips 设置</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 30px;
+      font-size: 28px;
+      color: #1a73e8;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      color: #333;
+      border-bottom: 2px solid #1a73e8;
+      padding-bottom: 8px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 150px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+    }
+
+    .url-list {
+      margin-bottom: 10px;
+    }
+
+    .url-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 4px;
+    }
+
+    .url-item span {
+      flex: 1;
+      word-break: break-all;
+      margin-right: 10px;
+    }
+
+    .url-item button {
+      padding: 6px 12px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .url-item button:hover {
+      background: #d32f2f;
+    }
+
+    .add-url-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .add-url-container input {
+      flex: 1;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #1557b0;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .button-secondary {
+      background: #5f6368;
+    }
+
+    .button-secondary:hover {
+      background: #3c4043;
+    }
+
+    .save-button {
+      margin-top: 30px;
+      padding: 12px 30px;
+      font-size: 16px;
+    }
+
+    .status-message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .help-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .hidden-words-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .hidden-word-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      background: #e8f0fe;
+      border-radius: 16px;
+      font-size: 14px;
+      color: #1a73e8;
+    }
+
+    .hidden-word-tag button {
+      margin-left: 8px;
+      padding: 2px 8px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .hidden-word-tag button:hover {
+      background: #1557b0;
+    }
+
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: #999;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ Work Tips 设置</h1>
+
+    <div class="section">
+      <h2>📚 词表配置</h2>
+      <label for="wordList">本地词表（一行一个，使用冒号分隔词和释义）</label>
+      <textarea id="wordList" placeholder="例如：
+API:Application Programming Interface，应用程序编程接口
+JSON:JavaScript Object Notation，一种轻量级的数据交换格式
+HTML：Hypertext Markup Language，超文本标记语言"></textarea>
+      <div class="help-text">
+        支持中英文冒号（: 或 ：）。每行格式：词汇:释义
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🌐 远程词表</h2>
+      <label>远程 JSON 地址列表</label>
+      <div class="url-list" id="remoteUrlList"></div>
+      <div class="add-url-container">
+        <input type="text" id="newRemoteUrl" placeholder="输入远程 JSON 地址，格式：{ 'word': 'definition' }">
+        <button onclick="addRemoteUrl()">添加</button>
+      </div>
+      <div class="help-text">
+        远程 JSON 格式示例：{ "API": "Application Programming Interface", "JSON": "JavaScript Object Notation" }
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🚫 排除网站</h2>
+      <label for="excludedSites">排除的网站地址（一行一个，支持正则表达式）</label>
+      <textarea id="excludedSites" placeholder="例如：
+https://example.com
+.*\.google\.com
+https://github\.com/.*"></textarea>
+      <div class="help-text">
+        可以使用正则表达式匹配网址，例如：.*\.google\.com 匹配所有 Google 域名
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>👁️ 隐藏的词汇</h2>
+      <div class="help-text" style="margin-bottom: 10px;">
+        这些词汇已被设置为不再显示
+      </div>
+      <div class="hidden-words-list" id="hiddenWordsList"></div>
+    </div>
+
+    <button class="save-button" onclick="saveSettings()">💾 保存设置</button>
+
+    <div class="status-message" id="statusMessage"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
