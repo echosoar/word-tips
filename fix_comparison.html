@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>customElements Fix Comparison</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+.container {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+h1 {
+  color: #1a73e8;
+  margin-top: 0;
+}
+h2 {
+  color: #333;
+  border-bottom: 2px solid #1a73e8;
+  padding-bottom: 8px;
+  margin-top: 30px;
+}
+.code-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 20px 0;
+}
+.code-block {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+  border-left: 4px solid #dc3545;
+}
+.code-block.fixed {
+  border-left-color: #28a745;
+}
+.code-block h3 {
+  margin-top: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.code-block.before h3 {
+  color: #dc3545;
+}
+.code-block.fixed h3 {
+  color: #28a745;
+}
+pre {
+  background: #282c34;
+  color: #abb2bf;
+  padding: 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.removed {
+  background: #ffeef0;
+  color: #d73a49;
+}
+.added {
+  background: #e6ffed;
+  color: #22863a;
+}
+.explanation {
+  background: #e8f0fe;
+  border-left: 4px solid #1a73e8;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+.check-list {
+  list-style: none;
+  padding: 0;
+}
+.check-list li {
+  padding: 8px 0;
+  padding-left: 30px;
+  position: relative;
+}
+.check-list li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #28a745;
+  font-weight: bold;
+  font-size: 18px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔧 修复 customElements 空引用错误</h1>
+  
+  <div class="explanation">
+    <strong>问题：</strong> 在某些受限环境（如 iframe 或特殊的网页上下文）中，<code>customElements</code> API 可能为 <code>null</code> 或 <code>undefined</code>，导致扩展抛出错误。
+  </div>
+
+  <h2>代码对比</h2>
+  
+  <div class="code-comparison">
+    <div class="code-block before">
+      <h3>修复前 (有问题)</h3>
+      <pre class="removed">if (!customElements.get('work-tip')) {
+  customElements.define('work-tip', ...);
+}</pre>
+      <p style="color: #dc3545; font-size: 13px;">❌ 如果 customElements 为 null/undefined，会抛出错误</p>
+    </div>
+    
+    <div class="code-block fixed">
+      <h3>修复后 (已修复)</h3>
+      <pre class="added">if (typeof customElements !== 'undefined' 
+    && customElements 
+    && !customElements.get('work-tip')) {
+  customElements.define('work-tip', ...);
+}</pre>
+      <p style="color: #28a745; font-size: 13px;">✓ 安全检查，防止空引用错误</p>
+    </div>
+  </div>
+
+  <h2>修复内容</h2>
+  <ul class="check-list">
+    <li>添加 <code>typeof customElements !== 'undefined'</code> 检查</li>
+    <li>添加 <code>customElements</code> 真值检查</li>
+    <li>保留原有的 <code>!customElements.get('work-tip')</code> 检查</li>
+    <li>确保在所有环境下都不会抛出错误</li>
+  </ul>
+
+  <div class="explanation">
+    <strong>提交：</strong> 48923c6 - Fix customElements null reference error
+  </div>
+</div>
+</body>
+</html>
