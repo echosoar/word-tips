@@ -1,9 +1,0 @@
-{
-  "_title": "前端开发词汇",
-  "HTML": "Hypertext Markup Language，超文本标记语言",
-  "CSS": "Cascading Style Sheets，层叠样式表",
-  "JavaScript": "一种高级的、解释型的编程语言",
-  "React": "用于构建用户界面的 JavaScript 库",
-  "Vue": "渐进式 JavaScript 框架",
-  "Webpack": "现代 JavaScript 应用程序的静态模块打包工具"
-}
