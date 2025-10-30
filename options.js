@@ -123,14 +123,10 @@ function renderRemoteUrls(remoteLists) {
     const content = document.createElement('div');
     content.className = 'url-content';
     
-    // Title and URL
+    // Title
     const titleDiv = document.createElement('div');
     titleDiv.className = 'url-title';
     titleDiv.textContent = list.title || '未命名词表';
-    
-    const urlDiv = document.createElement('div');
-    urlDiv.className = 'url-address';
-    urlDiv.textContent = list.url;
     
     // Metadata
     const metaDiv = document.createElement('div');
@@ -152,9 +148,14 @@ function renderRemoteUrls(remoteLists) {
     }
     metaDiv.textContent = metaText;
     
+    // URL at the bottom
+    const urlDiv = document.createElement('div');
+    urlDiv.className = 'url-address';
+    urlDiv.textContent = list.url;
+    
     content.appendChild(titleDiv);
-    content.appendChild(urlDiv);
     content.appendChild(metaDiv);
+    content.appendChild(urlDiv);
     
     // Action buttons
     const actions = document.createElement('div');
@@ -162,7 +163,7 @@ function renderRemoteUrls(remoteLists) {
     
     const refreshBtn = document.createElement('button');
     refreshBtn.textContent = '🔄 刷新';
-    refreshBtn.className = 'button-secondary';
+    refreshBtn.className = 'button-refresh';
     refreshBtn.disabled = list.status === 'loading';
     refreshBtn.onclick = () => refreshRemoteUrl(index);
     
