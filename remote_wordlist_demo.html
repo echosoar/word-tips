@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>远程词表管理功能演示</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #f5f5f5;
+}
+.container {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+h1 {
+  color: #1a73e8;
+  margin-top: 0;
+}
+h2 {
+  color: #333;
+  border-bottom: 2px solid #1a73e8;
+  padding-bottom: 8px;
+  margin-top: 30px;
+}
+.url-list {
+  margin: 20px 0;
+}
+.url-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+.url-enable-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.url-content {
+  flex: 1;
+  min-width: 0;
+}
+.url-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #333;
+  margin-bottom: 4px;
+}
+.url-address {
+  font-size: 12px;
+  color: #666;
+  word-break: break-all;
+  margin-bottom: 6px;
+}
+.url-meta {
+  font-size: 12px;
+  color: #999;
+}
+.url-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.url-actions button {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.button-secondary {
+  background: #5f6368;
+  color: white;
+}
+.button-secondary:hover {
+  background: #3c4043;
+}
+.button-danger {
+  background: #f44336;
+  color: white;
+}
+.button-danger:hover {
+  background: #d32f2f;
+}
+.feature-list {
+  list-style: none;
+  padding: 0;
+}
+.feature-list li {
+  padding: 8px 0;
+  padding-left: 30px;
+  position: relative;
+}
+.feature-list li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #28a745;
+  font-weight: bold;
+  font-size: 18px;
+}
+.explanation {
+  background: #e8f0fe;
+  border-left: 4px solid #1a73e8;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+.code {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌐 远程词表管理功能演示</h1>
+  
+  <div class="explanation">
+    <strong>功能说明：</strong> 全新的远程词表管理系统，支持元数据显示、启用/禁用切换、手动刷新等高级功能。
+  </div>
+
+  <h2>新功能特性</h2>
+  <ul class="feature-list">
+    <li><strong>点击添加时立即获取</strong>：添加 URL 时立即fetch词表内容，不在页面加载时获取</li>
+    <li><strong>支持 _title 字段</strong>：JSON 中的 _title 字段作为词表标题</li>
+    <li><strong>显示元数据</strong>：显示词汇数量和最后更新时间</li>
+    <li><strong>手动刷新</strong>：每个词表都有刷新按钮</li>
+    <li><strong>启用/禁用</strong>：可以单独控制每个词表是否启用</li>
+    <li><strong>默认词表</strong>：安装时自动添加并获取默认词表</li>
+    <li><strong>错误处理</strong>：加载失败时保留旧数据，显示错误状态</li>
+  </ul>
+
+  <h2>词表UI示例</h2>
+  
+  <div class="url-list">
+    <!-- Example 1: Successfully loaded -->
+    <div class="url-item">
+      <input type="checkbox" class="url-enable-checkbox" checked>
+      <div class="url-content">
+        <div class="url-title">前端开发词汇</div>
+        <div class="url-address">https://example.com/dict1.json</div>
+        <div class="url-meta">6 个词汇 · 更新于 2025-10-30 14:25:10</div>
+      </div>
+      <div class="url-actions">
+        <button class="button-secondary">🔄 刷新</button>
+        <button class="button-danger">删除</button>
+      </div>
+    </div>
+
+    <!-- Example 2: Loading -->
+    <div class="url-item">
+      <input type="checkbox" class="url-enable-checkbox" checked>
+      <div class="url-content">
+        <div class="url-title">后端开发词汇</div>
+        <div class="url-address">https://example.com/dict2.json</div>
+        <div class="url-meta">加载中...</div>
+      </div>
+      <div class="url-actions">
+        <button class="button-secondary" disabled style="cursor: not-allowed; background: #ccc;">🔄 刷新</button>
+        <button class="button-danger">删除</button>
+      </div>
+    </div>
+
+    <!-- Example 3: Error state -->
+    <div class="url-item" style="border-color: #f44336;">
+      <input type="checkbox" class="url-enable-checkbox" checked>
+      <div class="url-content">
+        <div class="url-title">云计算词汇</div>
+        <div class="url-address">https://example.com/dict3.json</div>
+        <div class="url-meta" style="color: #f44336;">❌ 加载失败</div>
+      </div>
+      <div class="url-actions">
+        <button class="button-secondary">🔄 刷新</button>
+        <button class="button-danger">删除</button>
+      </div>
+    </div>
+
+    <!-- Example 4: Disabled -->
+    <div class="url-item" style="opacity: 0.6;">
+      <input type="checkbox" class="url-enable-checkbox">
+      <div class="url-content">
+        <div class="url-title">数据库词汇</div>
+        <div class="url-address">https://example.com/dict4.json</div>
+        <div class="url-meta">12 个词汇 · 更新于 2025-10-30 10:15:30</div>
+      </div>
+      <div class="url-actions">
+        <button class="button-secondary">🔄 刷新</button>
+        <button class="button-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <h2>JSON 格式示例</h2>
+  <div class="code">
+{
+  "_title": "前端开发词汇",
+  "HTML": "Hypertext Markup Language，超文本标记语言",
+  "CSS": "Cascading Style Sheets，层叠样式表",
+  "JavaScript": "一种高级的、解释型的编程语言",
+  "React": "用于构建用户界面的 JavaScript 库",
+  "Vue": "渐进式 JavaScript 框架",
+  "Webpack": "现代 JavaScript 应用程序的静态模块打包工具"
+}
+  </div>
+
+  <h2>数据结构</h2>
+  <div class="code">
+{
+  url: 'https://example.com/dict1.json',
+  title: '前端开发词汇',  // 从 _title 字段提取
+  enabled: true,          // 可通过复选框切换
+  wordCount: 6,           // 词汇数量
+  lastUpdate: 1730294710000, // 最后更新时间戳
+  status: 'success',      // 'loading' | 'success' | 'error'
+  data: { ...words... }   // 缓存的词表数据
+}
+  </div>
+
+  <h2>使用流程</h2>
+  <ol>
+    <li>用户在设置页面输入远程词表 URL 并点击"添加"</li>
+    <li>立即 fetch 该 URL，显示"加载中..."状态</li>
+    <li>成功后提取 _title 字段作为标题，统计词汇数量，保存数据</li>
+    <li>失败则显示错误状态，保留旧数据（如果有）</li>
+    <li>用户可以点击刷新按钮手动更新词表</li>
+    <li>用户可以通过复选框启用/禁用词表</li>
+    <li>网页加载时不会 fetch，只使用缓存的数据</li>
+  </ol>
+
+  <div class="explanation">
+    <strong>提交：</strong> 911920a - Implement enhanced remote word list management with metadata and enable/disable
+  </div>
+</div>
+</body>
+</html>
