@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Work Tips 设置</title>
+  <title>Word Tips 设置</title>
   <style>
     * {
       box-sizing: border-box;
@@ -229,7 +229,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>⚙️ Work Tips 设置</h1>
+    <h1>⚙️ Word Tips 设置</h1>
 
     <div class="section">
       <h2>📚 词表配置</h2>
@@ -249,7 +249,7 @@ HTML：Hypertext Markup Language，超文本标记语言"></textarea>
       <div class="url-list" id="remoteUrlList"></div>
       <div class="add-url-container">
         <input type="text" id="newRemoteUrl" placeholder="输入远程 JSON 地址，格式：{ 'word': 'definition' }">
-        <button onclick="addRemoteUrl()">添加</button>
+        <button id="addRemoteUrlBtn">添加</button>
       </div>
       <div class="help-text">
         远程 JSON 格式示例：{ "API": "Application Programming Interface", "JSON": "JavaScript Object Notation" }
@@ -276,7 +276,7 @@ https://github\.com/.*"></textarea>
       <div class="hidden-words-list" id="hiddenWordsList"></div>
     </div>
 
-    <button class="save-button" onclick="saveSettings()">💾 保存设置</button>
+    <button class="save-button" id="saveSettingsBtn">💾 保存设置</button>
 
     <div class="status-message" id="statusMessage"></div>
   </div>

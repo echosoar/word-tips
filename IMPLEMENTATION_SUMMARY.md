@@ -1,4 +1,4 @@
-# Implementation Summary - Work Tips Browser Extension
+# Implementation Summary - Word Tips Browser Extension
 
 ## Overview
 Successfully implemented a Chrome Manifest V3 browser extension that provides vocabulary tips and definitions on web pages.

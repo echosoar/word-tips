@@ -91,7 +91,7 @@ async function init() {
     // Observe DOM changes
     observeDOM();
   } catch (error) {
-    console.error('Failed to initialize Work Tips:', error);
+    console.error('Failed to initialize Word Tips:', error);
   }
 }
 

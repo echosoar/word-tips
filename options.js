@@ -7,7 +7,13 @@ const STORAGE_KEYS = {
 };
 
 // Load settings on page load
-document.addEventListener('DOMContentLoaded', loadSettings);
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  
+  // Add event listeners
+  document.getElementById('addRemoteUrlBtn').addEventListener('click', addRemoteUrl);
+  document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+});
 
 async function loadSettings() {
   try {
