@@ -279,7 +279,19 @@ function showTooltip(element, word) {
   // Add definitions
   const content = document.createElement('div');
   content.className = 'work-tip-content';
-  content.innerHTML = definitions.join('<hr class="work-tip-separator">');
+  
+  // Create definition elements safely without innerHTML to prevent XSS
+  definitions.forEach((definition, index) => {
+    if (index > 0) {
+      const separator = document.createElement('hr');
+      separator.className = 'work-tip-separator';
+      content.appendChild(separator);
+    }
+    const defText = document.createElement('div');
+    defText.textContent = definition;
+    content.appendChild(defText);
+  });
+  
   tooltip.appendChild(content);
   
   // Add hide button
