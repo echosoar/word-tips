@@ -3,7 +3,8 @@ const STORAGE_KEYS = {
   WORD_LISTS: 'wordLists',
   HIDDEN_WORDS: 'hiddenWords',
   EXCLUDED_SITES: 'excludedSites',
-  REMOTE_URLS: 'remoteUrls'
+  REMOTE_URLS: 'remoteUrls',
+  CASE_INSENSITIVE: 'caseInsensitive'
 };
 
 // Load settings on page load
@@ -21,7 +22,8 @@ async function loadSettings() {
       STORAGE_KEYS.WORD_LISTS,
       STORAGE_KEYS.HIDDEN_WORDS,
       STORAGE_KEYS.EXCLUDED_SITES,
-      STORAGE_KEYS.REMOTE_URLS
+      STORAGE_KEYS.REMOTE_URLS,
+      STORAGE_KEYS.CASE_INSENSITIVE
     ]);
 
     // Load word list
@@ -31,6 +33,12 @@ async function loadSettings() {
     // Load excluded sites
     const excludedSites = result[STORAGE_KEYS.EXCLUDED_SITES] || [];
     document.getElementById('excludedSites').value = excludedSites.join('\n');
+
+    // Load case-insensitive setting (default to true)
+    const caseInsensitive = result[STORAGE_KEYS.CASE_INSENSITIVE] !== undefined 
+      ? result[STORAGE_KEYS.CASE_INSENSITIVE] 
+      : true;
+    document.getElementById('caseInsensitive').checked = caseInsensitive;
 
     // Load remote URLs
     const remoteUrls = result[STORAGE_KEYS.REMOTE_URLS] || [];
@@ -60,6 +68,9 @@ async function saveSettings() {
       .map(line => line.trim())
       .filter(line => line.length > 0);
 
+    // Get case-insensitive setting
+    const caseInsensitive = document.getElementById('caseInsensitive').checked;
+
     // Get current remote URLs and hidden words from storage
     const result = await chrome.storage.sync.get([
       STORAGE_KEYS.REMOTE_URLS,
@@ -70,6 +81,7 @@ async function saveSettings() {
     await chrome.storage.sync.set({
       [STORAGE_KEYS.WORD_LISTS]: wordLists,
       [STORAGE_KEYS.EXCLUDED_SITES]: excludedSites,
+      [STORAGE_KEYS.CASE_INSENSITIVE]: caseInsensitive,
       [STORAGE_KEYS.REMOTE_URLS]: result[STORAGE_KEYS.REMOTE_URLS] || [],
       [STORAGE_KEYS.HIDDEN_WORDS]: result[STORAGE_KEYS.HIDDEN_WORDS] || []
     });

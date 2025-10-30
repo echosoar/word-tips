@@ -3,13 +3,15 @@ const STORAGE_KEYS = {
   WORD_LISTS: 'wordLists',
   HIDDEN_WORDS: 'hiddenWords',
   EXCLUDED_SITES: 'excludedSites',
-  REMOTE_URLS: 'remoteUrls'
+  REMOTE_URLS: 'remoteUrls',
+  CASE_INSENSITIVE: 'caseInsensitive'
 };
 
 // Global state
 let wordDictionary = {};
 let hiddenWords = [];
 let isExcluded = false;
+let caseInsensitive = true; // Default to case-insensitive matching
 
 // Custom element definition for tip
 if (typeof customElements !== 'undefined' && customElements && !customElements.get('work-tip')) {
@@ -28,11 +30,17 @@ async function init() {
       STORAGE_KEYS.WORD_LISTS,
       STORAGE_KEYS.HIDDEN_WORDS,
       STORAGE_KEYS.EXCLUDED_SITES,
-      STORAGE_KEYS.REMOTE_URLS
+      STORAGE_KEYS.REMOTE_URLS,
+      STORAGE_KEYS.CASE_INSENSITIVE
     ]);
     
     const excludedSites = result[STORAGE_KEYS.EXCLUDED_SITES] || [];
     const currentUrl = window.location.href;
+    
+    // Load case sensitivity setting (default to true for case-insensitive)
+    caseInsensitive = result[STORAGE_KEYS.CASE_INSENSITIVE] !== undefined 
+      ? result[STORAGE_KEYS.CASE_INSENSITIVE] 
+      : true;
     
     // Check if site should be excluded
     isExcluded = excludedSites.some(pattern => {
@@ -136,6 +144,17 @@ function highlightWords() {
   });
 }
 
+// Helper function for finding word matches (case-sensitive or insensitive)
+function findWordInText(text, word, startIndex = 0) {
+  if (caseInsensitive) {
+    const lowerText = text.toLowerCase();
+    const lowerWord = word.toLowerCase();
+    return lowerText.indexOf(lowerWord, startIndex);
+  } else {
+    return text.indexOf(word, startIndex);
+  }
+}
+
 // Process a single text node
 function processTextNode(textNode) {
   const text = textNode.textContent;
@@ -148,7 +167,7 @@ function processTextNode(textNode) {
   
   // Check if any word matches
   for (const word of words) {
-    if (text.includes(word)) {
+    if (findWordInText(text, word) !== -1) {
       hasMatch = true;
       break;
     }
@@ -167,7 +186,7 @@ function processTextNode(textNode) {
   // Find all matches
   const matches = [];
   sortedWords.forEach(word => {
-    let index = text.indexOf(word);
+    let index = findWordInText(text, word);
     while (index !== -1) {
       // Check if this position is already matched
       const overlaps = matches.some(m => 
@@ -178,12 +197,13 @@ function processTextNode(textNode) {
       if (!overlaps) {
         matches.push({
           word: word,
+          matchedText: text.substring(index, index + word.length), // Store actual matched text
           start: index,
           end: index + word.length
         });
       }
       
-      index = text.indexOf(word, index + 1);
+      index = findWordInText(text, word, index + 1);
     }
   });
   
@@ -197,8 +217,8 @@ function processTextNode(textNode) {
     }
     
     const tip = document.createElement('work-tip');
-    tip.textContent = match.word;
-    tip.setAttribute('data-word', match.word);
+    tip.textContent = match.matchedText; // Use actual matched text to preserve case
+    tip.setAttribute('data-word', match.word); // Store dictionary word for lookup
     tip.className = 'work-tip-highlight';
     fragment.appendChild(tip);
     

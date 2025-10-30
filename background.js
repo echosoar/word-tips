@@ -3,12 +3,13 @@ const STORAGE_KEYS = {
   WORD_LISTS: 'wordLists',
   HIDDEN_WORDS: 'hiddenWords',
   EXCLUDED_SITES: 'excludedSites',
-  REMOTE_URLS: 'remoteUrls'
+  REMOTE_URLS: 'remoteUrls',
+  CASE_INSENSITIVE: 'caseInsensitive'
 };
 
 // Initialize default settings
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.get([STORAGE_KEYS.WORD_LISTS, STORAGE_KEYS.HIDDEN_WORDS, STORAGE_KEYS.EXCLUDED_SITES, STORAGE_KEYS.REMOTE_URLS], (result) => {
+  chrome.storage.sync.get([STORAGE_KEYS.WORD_LISTS, STORAGE_KEYS.HIDDEN_WORDS, STORAGE_KEYS.EXCLUDED_SITES, STORAGE_KEYS.REMOTE_URLS, STORAGE_KEYS.CASE_INSENSITIVE], (result) => {
     const defaults = {};
     
     if (!result[STORAGE_KEYS.WORD_LISTS]) {
@@ -25,6 +26,10 @@ chrome.runtime.onInstalled.addListener(() => {
     
     if (!result[STORAGE_KEYS.REMOTE_URLS]) {
       defaults[STORAGE_KEYS.REMOTE_URLS] = [];
+    }
+    
+    if (result[STORAGE_KEYS.CASE_INSENSITIVE] === undefined) {
+      defaults[STORAGE_KEYS.CASE_INSENSITIVE] = true; // Default to case-insensitive
     }
     
     if (Object.keys(defaults).length > 0) {
