@@ -1,4 +1,4 @@
-# Work Tips - 词汇提示助手
+# Word Tips - 词汇提示助手
 
 一个基于 Chrome Manifest V3 的浏览器插件，用于在网页中为配置的词汇添加释义提示。
 

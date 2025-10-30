@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Work Tips 设置</title>
+  <title>Word Tips 设置</title>
   <style>
     * {
       box-sizing: border-box;
@@ -84,17 +84,129 @@
       box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
     }
 
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin: 15px 0;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .checkbox-container label {
+      margin-bottom: 0;
+      cursor: pointer;
+      font-weight: normal;
+    }
+
     .url-list {
       margin-bottom: 10px;
     }
 
     .url-item {
       display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      padding: 10px;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 15px;
       background: #f9f9f9;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .url-enable-checkbox {
+      width: 18px;
+      height: 18px;
+      margin-top: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .url-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .url-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .url-meta {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .url-address {
+      font-size: 11px;
+      color: #999;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      padding-top: 6px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .url-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .url-actions button {
+      padding: 6px 12px;
+      font-size: 13px;
       border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .button-refresh {
+      background: #f5f5f5;
+      color: #666;
+      border: 1px solid #e0e0e0;
+    }
+
+    .button-refresh:hover {
+      background: #e8e8e8;
+      color: #333;
+    }
+
+    .button-refresh:disabled {
+      background: #fafafa;
+      color: #ccc;
+      cursor: not-allowed;
+      border-color: #f0f0f0;
+    }
+
+    .button-secondary {
+      background: #5f6368;
+      color: white;
+    }
+
+    .button-secondary:hover {
+      background: #3c4043;
+    }
+
+    .button-secondary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .button-danger {
+      background: #f44336;
+      color: white;
+    }
+
+    .button-danger:hover {
+      background: #d32f2f;
     }
 
     .url-item span {
@@ -229,7 +341,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>⚙️ Work Tips 设置</h1>
+    <h1>⚙️ Word Tips 设置</h1>
 
     <div class="section">
       <h2>📚 词表配置</h2>
@@ -249,7 +361,7 @@ HTML：Hypertext Markup Language，超文本标记语言"></textarea>
       <div class="url-list" id="remoteUrlList"></div>
       <div class="add-url-container">
         <input type="text" id="newRemoteUrl" placeholder="输入远程 JSON 地址，格式：{ 'word': 'definition' }">
-        <button onclick="addRemoteUrl()">添加</button>
+        <button id="addRemoteUrlBtn">添加</button>
       </div>
       <div class="help-text">
         远程 JSON 格式示例：{ "API": "Application Programming Interface", "JSON": "JavaScript Object Notation" }
@@ -269,6 +381,17 @@ https://github\.com/.*"></textarea>
     </div>
 
     <div class="section">
+      <h2>⚙️ 匹配选项</h2>
+      <div class="checkbox-container">
+        <input type="checkbox" id="caseInsensitive" checked>
+        <label for="caseInsensitive">忽略大小写（匹配时不区分大小写）</label>
+      </div>
+      <div class="help-text">
+        开启后，"API" 可以匹配 "api"、"Api" 等不同大小写形式
+      </div>
+    </div>
+
+    <div class="section">
       <h2>👁️ 隐藏的词汇</h2>
       <div class="help-text" style="margin-bottom: 10px;">
         这些词汇已被设置为不再显示
@@ -276,7 +399,7 @@ https://github\.com/.*"></textarea>
       <div class="hidden-words-list" id="hiddenWordsList"></div>
     </div>
 
-    <button class="save-button" onclick="saveSettings()">💾 保存设置</button>
+    <button class="save-button" id="saveSettingsBtn">💾 保存设置</button>
 
     <div class="status-message" id="statusMessage"></div>
   </div>

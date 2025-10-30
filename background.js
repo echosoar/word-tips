@@ -3,35 +3,116 @@ const STORAGE_KEYS = {
   WORD_LISTS: 'wordLists',
   HIDDEN_WORDS: 'hiddenWords',
   EXCLUDED_SITES: 'excludedSites',
-  REMOTE_URLS: 'remoteUrls'
+  REMOTE_URLS: 'remoteUrls',
+  CASE_INSENSITIVE: 'caseInsensitive'
 };
 
-// Initialize default settings
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.get([STORAGE_KEYS.WORD_LISTS, STORAGE_KEYS.HIDDEN_WORDS, STORAGE_KEYS.EXCLUDED_SITES, STORAGE_KEYS.REMOTE_URLS], (result) => {
-    const defaults = {};
-    
-    if (!result[STORAGE_KEYS.WORD_LISTS]) {
-      defaults[STORAGE_KEYS.WORD_LISTS] = [];
+// Default remote word lists
+const DEFAULT_REMOTE_LISTS = [
+  'https://example.com/dict1.json',
+  'https://example.com/dict2.json'
+];
+
+// Initialize default settings and fetch default word lists
+chrome.runtime.onInstalled.addListener(async () => {
+  const result = await chrome.storage.sync.get([
+    STORAGE_KEYS.WORD_LISTS,
+    STORAGE_KEYS.HIDDEN_WORDS,
+    STORAGE_KEYS.EXCLUDED_SITES,
+    STORAGE_KEYS.REMOTE_URLS,
+    STORAGE_KEYS.CASE_INSENSITIVE
+  ]);
+  
+  const defaults = {};
+  
+  if (!result[STORAGE_KEYS.WORD_LISTS]) {
+    defaults[STORAGE_KEYS.WORD_LISTS] = [];
+  }
+  
+  if (!result[STORAGE_KEYS.HIDDEN_WORDS]) {
+    defaults[STORAGE_KEYS.HIDDEN_WORDS] = [];
+  }
+  
+  if (!result[STORAGE_KEYS.EXCLUDED_SITES]) {
+    defaults[STORAGE_KEYS.EXCLUDED_SITES] = [];
+  }
+  
+  if (result[STORAGE_KEYS.CASE_INSENSITIVE] === undefined) {
+    defaults[STORAGE_KEYS.CASE_INSENSITIVE] = true; // Default to case-insensitive
+  }
+  
+  // Initialize default remote lists if none exist
+  if (!result[STORAGE_KEYS.REMOTE_URLS] || result[STORAGE_KEYS.REMOTE_URLS].length === 0) {
+    const remoteLists = DEFAULT_REMOTE_LISTS.map(url => ({
+      url: url,
+      title: '加载中...',
+      enabled: true,
+      wordCount: 0,
+      lastUpdate: null,
+      status: 'loading',
+      data: {}
+    }));
+    defaults[STORAGE_KEYS.REMOTE_URLS] = remoteLists;
+  }
+  
+  if (Object.keys(defaults).length > 0) {
+    await chrome.storage.sync.set(defaults);
+  }
+  
+  // Fetch default word lists
+  if (!result[STORAGE_KEYS.REMOTE_URLS] || result[STORAGE_KEYS.REMOTE_URLS].length === 0) {
+    for (let i = 0; i < DEFAULT_REMOTE_LISTS.length; i++) {
+      fetchRemoteWordList(i);
     }
-    
-    if (!result[STORAGE_KEYS.HIDDEN_WORDS]) {
-      defaults[STORAGE_KEYS.HIDDEN_WORDS] = [];
-    }
-    
-    if (!result[STORAGE_KEYS.EXCLUDED_SITES]) {
-      defaults[STORAGE_KEYS.EXCLUDED_SITES] = [];
-    }
-    
-    if (!result[STORAGE_KEYS.REMOTE_URLS]) {
-      defaults[STORAGE_KEYS.REMOTE_URLS] = [];
-    }
-    
-    if (Object.keys(defaults).length > 0) {
-      chrome.storage.sync.set(defaults);
-    }
-  });
+  }
 });
+
+// Fetch remote word list
+async function fetchRemoteWordList(index) {
+  try {
+    const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    
+    if (index >= remoteLists.length) {
+      return;
+    }
+
+    const list = remoteLists[index];
+    
+    // Fetch the JSON
+    const response = await fetch(list.url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Extract title from _title field
+    const title = data._title || list.url.split('/').pop();
+    delete data._title; // Remove _title from word data
+
+    // Count words
+    const wordCount = Object.keys(data).length;
+
+    // Update list info
+    list.title = title;
+    list.wordCount = wordCount;
+    list.lastUpdate = Date.now();
+    list.status = 'success';
+    list.data = data;
+
+    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+  } catch (error) {
+    // Mark as error but keep old data if exists
+    const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    
+    if (index < remoteLists.length) {
+      remoteLists[index].status = 'error';
+      await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+    }
+  }
+}
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

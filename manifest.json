@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Work Tips - 词汇提示助手",
+  "name": "Word Tips - 词汇提示助手",
   "version": "1.0.0",
   "description": "在网页中为配置的词汇添加释义提示",
   "permissions": [
@@ -23,7 +23,7 @@
   },
   "options_page": "options.html",
   "action": {
-    "default_title": "Work Tips 设置",
+    "default_title": "Word Tips 设置",
     "default_popup": "popup.html"
   },
   "icons": {

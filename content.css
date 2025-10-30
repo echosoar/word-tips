@@ -1,13 +1,13 @@
 /* Styling for highlighted words */
 work-tip {
   display: inline;
-  border-bottom: 2px dotted #1a73e8;
+  border-bottom: 1px dotted rgba(26, 115, 232, 0.5);
   cursor: pointer;
   position: relative;
 }
 
 work-tip:hover {
-  border-bottom-color: #0d47a1;
+  border-bottom-color: rgba(26, 115, 232, 0.8);
 }
 
 /* Tooltip styling */
