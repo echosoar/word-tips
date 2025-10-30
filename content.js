@@ -12,7 +12,7 @@ let hiddenWords = [];
 let isExcluded = false;
 
 // Custom element definition for tip
-if (!customElements.get('work-tip')) {
+if (typeof customElements !== 'undefined' && customElements && !customElements.get('work-tip')) {
   customElements.define('work-tip', class extends HTMLElement {
     constructor() {
       super();
