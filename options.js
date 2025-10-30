@@ -3,9 +3,16 @@ const STORAGE_KEYS = {
   WORD_LISTS: 'wordLists',
   HIDDEN_WORDS: 'hiddenWords',
   EXCLUDED_SITES: 'excludedSites',
-  REMOTE_URLS: 'remoteUrls',
+  REMOTE_URLS: 'remoteUrls', // Now stores array of {url, title, enabled, wordCount, lastUpdate, status, data}
+  REMOTE_WORD_DATA: 'remoteWordData', // Cached word data from remote sources
   CASE_INSENSITIVE: 'caseInsensitive'
 };
+
+// Default remote word lists
+const DEFAULT_REMOTE_LISTS = [
+  'https://example.com/dict1.json',
+  'https://example.com/dict2.json'
+];
 
 // Load settings on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -92,28 +99,84 @@ async function saveSettings() {
   }
 }
 
-function renderRemoteUrls(urls) {
+function renderRemoteUrls(remoteLists) {
   const container = document.getElementById('remoteUrlList');
   container.innerHTML = '';
 
-  if (urls.length === 0) {
+  if (remoteLists.length === 0) {
     container.innerHTML = '<div class="empty-state">暂无远程词表</div>';
     return;
   }
 
-  urls.forEach((url, index) => {
+  remoteLists.forEach((list, index) => {
     const item = document.createElement('div');
     item.className = 'url-item';
     
-    const span = document.createElement('span');
-    span.textContent = url;
+    // Checkbox for enable/disable
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = list.enabled !== false; // Default to enabled
+    checkbox.className = 'url-enable-checkbox';
+    checkbox.onchange = () => toggleRemoteUrl(index, checkbox.checked);
+    
+    // Content container
+    const content = document.createElement('div');
+    content.className = 'url-content';
+    
+    // Title and URL
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'url-title';
+    titleDiv.textContent = list.title || '未命名词表';
+    
+    const urlDiv = document.createElement('div');
+    urlDiv.className = 'url-address';
+    urlDiv.textContent = list.url;
+    
+    // Metadata
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'url-meta';
+    
+    let metaText = '';
+    if (list.status === 'loading') {
+      metaText = '加载中...';
+    } else if (list.status === 'error') {
+      metaText = `❌ 加载失败`;
+    } else if (list.wordCount !== undefined) {
+      metaText = `${list.wordCount} 个词汇`;
+      if (list.lastUpdate) {
+        const date = new Date(list.lastUpdate);
+        metaText += ` · 更新于 ${date.toLocaleString('zh-CN')}`;
+      }
+    } else {
+      metaText = '未加载';
+    }
+    metaDiv.textContent = metaText;
+    
+    content.appendChild(titleDiv);
+    content.appendChild(urlDiv);
+    content.appendChild(metaDiv);
+    
+    // Action buttons
+    const actions = document.createElement('div');
+    actions.className = 'url-actions';
+    
+    const refreshBtn = document.createElement('button');
+    refreshBtn.textContent = '🔄 刷新';
+    refreshBtn.className = 'button-secondary';
+    refreshBtn.disabled = list.status === 'loading';
+    refreshBtn.onclick = () => refreshRemoteUrl(index);
     
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = '删除';
+    deleteBtn.className = 'button-danger';
     deleteBtn.onclick = () => removeRemoteUrl(index);
     
-    item.appendChild(span);
-    item.appendChild(deleteBtn);
+    actions.appendChild(refreshBtn);
+    actions.appendChild(deleteBtn);
+    
+    item.appendChild(checkbox);
+    item.appendChild(content);
+    item.appendChild(actions);
     container.appendChild(item);
   });
 }
@@ -132,33 +195,119 @@ async function addRemoteUrl() {
     new URL(url);
 
     const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
-    const remoteUrls = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
 
-    if (remoteUrls.includes(url)) {
+    // Check if URL already exists
+    if (remoteLists.some(list => list.url === url)) {
       showMessage('该 URL 已存在', 'error');
       return;
     }
 
-    remoteUrls.push(url);
-    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteUrls });
+    // Create new list entry with loading status
+    const newList = {
+      url: url,
+      title: '加载中...',
+      enabled: true,
+      wordCount: 0,
+      lastUpdate: null,
+      status: 'loading',
+      data: {}
+    };
 
-    renderRemoteUrls(remoteUrls);
+    remoteLists.push(newList);
+    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+    renderRemoteUrls(remoteLists);
     input.value = '';
-    showMessage('远程词表添加成功', 'success');
+
+    // Fetch the word list
+    await fetchRemoteWordList(remoteLists.length - 1);
   } catch (error) {
     showMessage('添加失败: ' + error.message, 'error');
+  }
+}
+
+async function fetchRemoteWordList(index) {
+  try {
+    const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    
+    if (index >= remoteLists.length) {
+      return;
+    }
+
+    const list = remoteLists[index];
+    list.status = 'loading';
+    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+    renderRemoteUrls(remoteLists);
+
+    // Fetch the JSON
+    const response = await fetch(list.url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Extract title from _title field
+    const title = data._title || list.url.split('/').pop();
+    delete data._title; // Remove _title from word data
+
+    // Count words (excluding _title)
+    const wordCount = Object.keys(data).length;
+
+    // Update list info
+    list.title = title;
+    list.wordCount = wordCount;
+    list.lastUpdate = Date.now();
+    list.status = 'success';
+    list.data = data;
+
+    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+    renderRemoteUrls(remoteLists);
+    showMessage(`词表「${title}」加载成功`, 'success');
+  } catch (error) {
+    // Mark as error but keep old data if exists
+    const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    
+    if (index < remoteLists.length) {
+      remoteLists[index].status = 'error';
+      await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+      renderRemoteUrls(remoteLists);
+    }
+    
+    showMessage('加载失败: ' + error.message, 'error');
+  }
+}
+
+async function refreshRemoteUrl(index) {
+  await fetchRemoteWordList(index);
+}
+
+async function toggleRemoteUrl(index, enabled) {
+  try {
+    const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+
+    if (index < remoteLists.length) {
+      remoteLists[index].enabled = enabled;
+      await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
+      showMessage(enabled ? '词表已启用' : '词表已禁用', 'success');
+    }
+  } catch (error) {
+    showMessage('操作失败: ' + error.message, 'error');
   }
 }
 
 async function removeRemoteUrl(index) {
   try {
     const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
-    const remoteUrls = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
 
-    remoteUrls.splice(index, 1);
-    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteUrls });
+    remoteLists.splice(index, 1);
+    await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
 
-    renderRemoteUrls(remoteUrls);
+    renderRemoteUrls(remoteLists);
     showMessage('远程词表删除成功', 'success');
   } catch (error) {
     showMessage('删除失败: ' + error.message, 'error');

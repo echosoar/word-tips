@@ -1,0 +1,9 @@
+{
+  "_title": "后端开发词汇",
+  "API": "Application Programming Interface，应用程序编程接口",
+  "REST": "Representational State Transfer，表述性状态转移",
+  "Node.js": "基于 Chrome V8 引擎的 JavaScript 运行时",
+  "Python": "一种高级编程语言，语法简洁清晰",
+  "MySQL": "开源的关系型数据库管理系统",
+  "Redis": "开源的内存数据结构存储系统"
+}

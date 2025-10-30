@@ -76,22 +76,19 @@ async function init() {
       }
     });
     
-    // Load remote word lists
-    const remoteUrls = result[STORAGE_KEYS.REMOTE_URLS] || [];
-    for (const url of remoteUrls) {
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        Object.keys(data).forEach(word => {
+    // Load remote word lists from cached data
+    const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+    remoteLists.forEach(list => {
+      // Only use enabled lists with successfully loaded data
+      if (list.enabled !== false && list.status === 'success' && list.data) {
+        Object.keys(list.data).forEach(word => {
           if (!wordDictionary[word]) {
             wordDictionary[word] = [];
           }
-          wordDictionary[word].push(data[word]);
+          wordDictionary[word].push(list.data[word]);
         });
-      } catch (e) {
-        console.error('Failed to load remote word list:', url, e);
       }
-    }
+    });
     
     // Start highlighting
     highlightWords();
