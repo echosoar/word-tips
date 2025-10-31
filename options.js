@@ -68,6 +68,12 @@ async function saveSettings() {
       .map(line => line.trim())
       .filter(line => line.length > 0);
 
+    // Check word list limit (max 50 entries)
+    if (wordLists.length > 50) {
+      showMessage('本地词表不能超过 50 个词汇，当前有 ' + wordLists.length + ' 个', 'error');
+      return;
+    }
+
     // Get excluded sites
     const excludedSitesText = document.getElementById('excludedSites').value;
     const excludedSites = excludedSitesText
@@ -211,8 +217,7 @@ async function addRemoteUrl() {
       enabled: true,
       wordCount: 0,
       lastUpdate: null,
-      status: 'loading',
-      data: {}
+      status: 'loading'
     };
 
     remoteLists.push(newList);
@@ -241,13 +246,17 @@ async function fetchRemoteWordList(index) {
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
     renderRemoteUrls(remoteLists);
 
-    // Fetch the JSON
-    const response = await fetch(list.url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    // Use background script to fetch and cache the data
+    const response = await chrome.runtime.sendMessage({ 
+      action: 'fetchRemoteWordList', 
+      url: list.url 
+    });
+
+    if (!response.success) {
+      throw new Error(response.error);
     }
 
-    const data = await response.json();
+    const data = response.data;
     
     // Extract title from _title field
     const title = data._title || list.url.split('/').pop();
@@ -256,16 +265,22 @@ async function fetchRemoteWordList(index) {
     // Count words (excluding _title)
     const wordCount = Object.keys(data).length;
 
-    // Update list info
+    // Update list info (data will be cached in background)
     list.title = title;
     list.wordCount = wordCount;
     list.lastUpdate = Date.now();
     list.status = 'success';
-    list.data = data;
 
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
     renderRemoteUrls(remoteLists);
     showMessage(`词表「${title}」加载成功`, 'success');
+    
+    // Notify background to update cache
+    await chrome.runtime.sendMessage({
+      action: 'updateRemoteCache',
+      index: index,
+      data: data
+    });
   } catch (error) {
     // Mark as error but keep old data if exists
     const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);

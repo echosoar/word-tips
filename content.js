@@ -76,19 +76,25 @@ async function init() {
       }
     });
     
-    // Load remote word lists from cached data
+    // Load remote word lists from background memory
     const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
-    remoteLists.forEach(list => {
-      // Only use enabled lists with successfully loaded data
-      if (list.enabled !== false && list.status === 'success' && list.data) {
-        Object.keys(list.data).forEach(word => {
-          if (!wordDictionary[word]) {
-            wordDictionary[word] = [];
+    if (remoteLists.some(list => list.enabled !== false && list.status === 'success')) {
+      // Request remote word data from background
+      const response = await chrome.runtime.sendMessage({ action: 'getRemoteWordData' });
+      if (response.success && response.data) {
+        remoteLists.forEach((list, index) => {
+          // Only use enabled lists with successfully loaded data
+          if (list.enabled !== false && list.status === 'success' && response.data[index]) {
+            Object.keys(response.data[index]).forEach(word => {
+              if (!wordDictionary[word]) {
+                wordDictionary[word] = [];
+              }
+              wordDictionary[word].push(response.data[index][word]);
+            });
           }
-          wordDictionary[word].push(list.data[word]);
         });
       }
-    });
+    }
     
     // Start highlighting
     highlightWords();
@@ -413,12 +419,11 @@ document.addEventListener('mouseout', (e) => {
   }
 });
 
-// Listen for storage changes
+// Listen for storage changes - removed auto-reload
+// Users can manually refresh when they need to see updates
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync') {
-    // Reload if settings changed
-    window.location.reload();
-  }
+  // Removed automatic page reload on settings change
+  // Users should manually refresh the page when needed
 });
 
 // Initialize when DOM is ready

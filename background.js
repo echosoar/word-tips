@@ -7,6 +7,9 @@ const STORAGE_KEYS = {
   CASE_INSENSITIVE: 'caseInsensitive'
 };
 
+// In-memory cache for remote word lists data
+const remoteWordListsCache = {};
+
 // Default remote word lists
 const DEFAULT_REMOTE_LISTS = [
   'https://example.com/dict1.json',
@@ -49,8 +52,7 @@ chrome.runtime.onInstalled.addListener(async () => {
       enabled: true,
       wordCount: 0,
       lastUpdate: null,
-      status: 'loading',
-      data: {}
+      status: 'loading'
     }));
     defaults[STORAGE_KEYS.REMOTE_URLS] = remoteLists;
   }
@@ -94,12 +96,14 @@ async function fetchRemoteWordList(index) {
     // Count words
     const wordCount = Object.keys(data).length;
 
-    // Update list info
+    // Store data in memory cache
+    remoteWordListsCache[index] = data;
+
+    // Update list info (without data field)
     list.title = title;
     list.wordCount = wordCount;
     list.lastUpdate = Date.now();
     list.status = 'success';
-    list.data = data;
 
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
   } catch (error) {
@@ -129,6 +133,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
     return true; // Keep the message channel open for async response
+  }
+  
+  if (request.action === 'getRemoteWordData') {
+    // Return remote word data from memory cache
+    sendResponse({ success: true, data: remoteWordListsCache });
+    return false;
+  }
+  
+  if (request.action === 'updateRemoteCache') {
+    // Update memory cache with new data
+    remoteWordListsCache[request.index] = request.data;
+    sendResponse({ success: true });
+    return false;
   }
   
   if (request.action === 'fetchRemoteWordList') {
