@@ -138,17 +138,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getRemoteWordData') {
     // Return remote word data from memory cache
     sendResponse({ success: true, data: remoteWordListsCache });
-    return false;
   }
   
-  if (request.action === 'updateRemoteCache') {
-    // Update memory cache with new data
-    remoteWordListsCache[request.index] = request.data;
-    sendResponse({ success: true });
-    return false;
-  }
-  
-  if (request.action === 'fetchRemoteWordList') {
+  if (request.action === 'fetchAndCacheRemoteWordList') {
+    // Fetch remote word list and cache it in memory
     fetch(request.url)
       .then(response => {
         if (!response.ok) {
@@ -157,7 +150,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return response.json();
       })
       .then(data => {
-        sendResponse({ success: true, data: data });
+        // Extract title from _title field
+        const title = data._title || request.url.split('/').pop();
+        delete data._title; // Remove _title from word data
+        
+        // Count words
+        const wordCount = Object.keys(data).length;
+        
+        // Cache data in memory
+        remoteWordListsCache[request.index] = data;
+        
+        sendResponse({ 
+          success: true, 
+          title: title,
+          wordCount: wordCount
+        });
       })
       .catch(error => {
         sendResponse({ success: false, error: error.message });

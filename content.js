@@ -419,13 +419,6 @@ document.addEventListener('mouseout', (e) => {
   }
 });
 
-// Listen for storage changes - removed auto-reload
-// Users can manually refresh when they need to see updates
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  // Removed automatic page reload on settings change
-  // Users should manually refresh the page when needed
-});
-
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);

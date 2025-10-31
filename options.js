@@ -249,41 +249,26 @@ async function fetchRemoteWordList(index) {
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
     renderRemoteUrls(remoteLists);
 
-    // Use background script to fetch and cache the data
+    // Request background to fetch and cache the data
     const response = await chrome.runtime.sendMessage({ 
-      action: 'fetchRemoteWordList', 
-      url: list.url 
+      action: 'fetchAndCacheRemoteWordList', 
+      url: list.url,
+      index: index
     });
 
     if (!response.success) {
       throw new Error(response.error);
     }
 
-    const data = response.data;
-    
-    // Extract title from _title field
-    const title = data._title || list.url.split('/').pop();
-    delete data._title; // Remove _title from word data
-
-    // Count words (excluding _title)
-    const wordCount = Object.keys(data).length;
-
-    // Update list info (data will be cached in background)
-    list.title = title;
-    list.wordCount = wordCount;
+    // Update list info with data from background
+    list.title = response.title;
+    list.wordCount = response.wordCount;
     list.lastUpdate = Date.now();
     list.status = 'success';
 
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
     renderRemoteUrls(remoteLists);
-    showMessage(`词表「${title}」加载成功`, 'success');
-    
-    // Notify background to update cache
-    await chrome.runtime.sendMessage({
-      action: 'updateRemoteCache',
-      index: index,
-      data: data
-    });
+    showMessage(`词表「${response.title}」加载成功`, 'success');
   } catch (error) {
     // Mark as error but keep old data if exists
     const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
