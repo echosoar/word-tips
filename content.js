@@ -79,20 +79,24 @@ async function init() {
     // Load remote word lists from background memory
     const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
     if (remoteLists.some(list => list.enabled !== false && list.status === 'success')) {
-      // Request remote word data from background
-      const response = await chrome.runtime.sendMessage({ action: 'getRemoteWordData' });
-      if (response.success && response.data) {
-        remoteLists.forEach((list, index) => {
-          // Only use enabled lists with successfully loaded data
-          if (list.enabled !== false && list.status === 'success' && response.data[index]) {
-            Object.keys(response.data[index]).forEach(word => {
-              if (!wordDictionary[word]) {
-                wordDictionary[word] = [];
-              }
-              wordDictionary[word].push(response.data[index][word]);
-            });
-          }
-        });
+      try {
+        // Request remote word data from background
+        const response = await chrome.runtime.sendMessage({ action: 'getRemoteWordData' });
+        if (response && response.success && response.data) {
+          remoteLists.forEach((list, index) => {
+            // Only use enabled lists with successfully loaded data
+            if (list.enabled !== false && list.status === 'success' && response.data[index]) {
+              Object.keys(response.data[index]).forEach(word => {
+                if (!wordDictionary[word]) {
+                  wordDictionary[word] = [];
+                }
+                wordDictionary[word].push(response.data[index][word]);
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load remote word lists from background:', error);
       }
     }
     
