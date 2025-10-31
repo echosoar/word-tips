@@ -8,6 +8,9 @@ const STORAGE_KEYS = {
   CASE_INSENSITIVE: 'caseInsensitive'
 };
 
+// Configuration constants
+const MAX_LOCAL_WORDS = 50; // Maximum number of local word entries
+
 // Default remote word lists
 const DEFAULT_REMOTE_LISTS = [
   'https://example.com/dict1.json',
@@ -69,8 +72,8 @@ async function saveSettings() {
       .filter(line => line.length > 0);
 
     // Check word list limit (max 50 entries)
-    if (wordLists.length > 50) {
-      showMessage('本地词表不能超过 50 个词汇，当前有 ' + wordLists.length + ' 个', 'error');
+    if (wordLists.length > MAX_LOCAL_WORDS) {
+      showMessage('本地词表不能超过 ' + MAX_LOCAL_WORDS + ' 个词汇，当前有 ' + wordLists.length + ' 个', 'error');
       return;
     }
 
