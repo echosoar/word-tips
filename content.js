@@ -12,6 +12,9 @@ let wordDictionary = {};
 let hiddenWords = [];
 let isExcluded = false;
 let caseInsensitive = true; // Default to case-insensitive matching
+let tooltipContentElement = null;
+let tooltipHideButton = null;
+let words = [];
 
 // Custom element definition for tip
 if (typeof customElements !== 'undefined' && customElements && !customElements.get('work-tip')) {
@@ -76,19 +79,45 @@ async function init() {
       }
     });
     
-    // Load remote word lists from cached data
+    // Load remote word lists from background memory
     const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
-    remoteLists.forEach(list => {
-      // Only use enabled lists with successfully loaded data
-      if (list.enabled !== false && list.status === 'success' && list.data) {
-        Object.keys(list.data).forEach(word => {
-          if (!wordDictionary[word]) {
-            wordDictionary[word] = [];
-          }
-          wordDictionary[word].push(list.data[word]);
-        });
+    if (remoteLists.some(list => list.enabled !== false && list.status === 'success')) {
+      try {
+        // Request remote word data from background
+        const response = await chrome.runtime.sendMessage({ action: 'getRemoteWordData' });
+        if (response && response.success && response.data) {
+          remoteLists.forEach((list, index) => {
+            // Only use enabled lists with successfully loaded data
+            if (list.enabled !== false && list.status === 'success' && response.data[index]) {
+              Object.keys(response.data[index]).forEach(word => {
+                if (!wordDictionary[word]) {
+                  wordDictionary[word] = [];
+                }
+                wordDictionary[word].push(response.data[index][word]);
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load remote word lists from background:', error);
       }
-    });
+    }
+
+    words = Object.keys(wordDictionary).map(word => {
+      // format definitions by splitting on commas
+      const wordInfo = wordDictionary[word];
+      const newDefList = [];
+      wordInfo.forEach(def => {
+        const newDef = def.trim();
+        if (!def) {
+          return;
+        }
+        const list = def.split(/\s*,\s*/);
+        newDefList.push(...list);
+      });
+      wordDictionary[word] = newDefList;
+      return word;
+    }).filter(word => !hiddenWords.includes(word));
     
     // Start highlighting
     highlightWords();
@@ -115,6 +144,13 @@ function highlightWords() {
         const parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
         
+        if (typeof parent.closest === 'function') {
+          const owner = parent.closest('work-tip, .work-tip-tooltip');
+          if (owner) {
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+
         const tagName = parent.tagName.toLowerCase();
         if (tagName === 'script' || tagName === 'style' || tagName === 'work-tip') {
           return NodeFilter.FILTER_REJECT;
@@ -143,13 +179,27 @@ function highlightWords() {
 
 // Helper function for finding word matches (case-sensitive or insensitive)
 function findWordInText(text, word, startIndex = 0) {
+  let index = -1
   if (caseInsensitive) {
     const lowerText = text.toLowerCase();
     const lowerWord = word.toLowerCase();
-    return lowerText.indexOf(lowerWord, startIndex);
+    index = lowerText.indexOf(lowerWord, startIndex);
   } else {
-    return text.indexOf(word, startIndex);
+    index = text.indexOf(word, startIndex);
   }
+  if (index !== -1) {
+    if (/[a-z]/i.test(word[0])) {
+      // Check word boundaries for alphabetic words
+      if (index > 0 && /[a-z]/i.test(text[index - 1])) {
+        return findWordInText(text, word, index + 1);
+      }
+      // Check character after the word
+      if (index + word.length < text.length && /[a-z]/i.test(text[index + word.length])) {
+        return findWordInText(text, word, index + 1);
+      }
+    }
+  }
+  return index;
 }
 
 // Process a single text node
@@ -158,9 +208,12 @@ function processTextNode(textNode) {
   const parent = textNode.parentElement;
   
   if (!text || !parent) return;
+  if (typeof parent.closest === 'function') {
+    const owner = parent.closest('work-tip, .work-tip-tooltip');
+    if (owner) return;
+  }
   
   let hasMatch = false;
-  const words = Object.keys(wordDictionary).filter(word => !hiddenWords.includes(word));
   
   // Check if any word matches
   for (const word of words) {
@@ -236,8 +289,24 @@ function processTextNode(textNode) {
 function observeDOM() {
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
+      if (mutation.target instanceof Element && typeof mutation.target.closest === 'function' && mutation.target.closest('.work-tip-tooltip')) {
+        return;
+      }
       mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'WORK-TIP') {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const elementNode = node;
+          if (elementNode.tagName === 'WORK-TIP') {
+            return;
+          }
+          if (typeof elementNode.closest === 'function') {
+            const owner = elementNode.closest('.work-tip-tooltip');
+            if (owner) {
+              return;
+            }
+          }
+          if (elementNode.classList && elementNode.classList.contains('work-tip-tooltip')) {
+            return;
+          }
           // Process new elements
           const walker = document.createTreeWalker(
             node,
@@ -247,6 +316,13 @@ function observeDOM() {
                 const parent = textNode.parentElement;
                 if (!parent) return NodeFilter.FILTER_REJECT;
                 
+                if (typeof parent.closest === 'function') {
+                  const owner = parent.closest('work-tip, .work-tip-tooltip');
+                  if (owner) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                }
+
                 const tagName = parent.tagName.toLowerCase();
                 if (tagName === 'script' || tagName === 'style' || tagName === 'work-tip') {
                   return NodeFilter.FILTER_REJECT;
@@ -265,6 +341,10 @@ function observeDOM() {
           
           nodesToProcess.forEach(processTextNode);
         } else if (node.nodeType === Node.TEXT_NODE) {
+          const parent = node.parentElement;
+          if (parent && typeof parent.closest === 'function' && parent.closest('work-tip, .work-tip-tooltip')) {
+            return;
+          }
           processTextNode(node);
         }
       });
@@ -277,79 +357,119 @@ function observeDOM() {
   });
 }
 
-// Create and show tooltip
+// Tooltip management
 let currentTooltip = null;
 
-function showTooltip(element, word) {
-  // Remove existing tooltip
-  if (currentTooltip) {
-    currentTooltip.remove();
-    currentTooltip = null;
+function ensureTooltipElement() {
+  let tooltip = currentTooltip;
+  if (!tooltip || !tooltip.isConnected) {
+    tooltip = document.querySelector('.work-tip-tooltip');
   }
-  
+
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'work-tip-tooltip';
+    tooltip.style.display = 'none';
+    tooltip.style.visibility = 'hidden';
+    document.body.appendChild(tooltip);
+  } else if (!tooltip.isConnected) {
+    document.body.appendChild(tooltip);
+  }
+
+  currentTooltip = tooltip;
+
+  if (!tooltipContentElement || !tooltipContentElement.isConnected || tooltipContentElement.parentElement !== tooltip) {
+    tooltipContentElement = tooltip.querySelector('.work-tip-content');
+  }
+  if (!tooltipContentElement) {
+    tooltipContentElement = document.createElement('div');
+    tooltipContentElement.className = 'work-tip-content';
+    tooltip.insertBefore(tooltipContentElement, tooltip.firstChild);
+  }
+
+  let hideButton = tooltip.querySelector('.work-tip-hide-btn');
+  if (!hideButton) {
+    hideButton = document.createElement('div');
+    hideButton.className = 'work-tip-hide-btn';
+    hideButton.textContent = '不再显示';
+    tooltip.appendChild(hideButton);
+  }
+  tooltipHideButton = hideButton;
+
+  tooltipHideButton.onclick = (e) => {
+    e.stopPropagation();
+    const word = tooltip.dataset.word;
+    if (word) {
+      hideWord(word);
+    }
+  };
+
+  return tooltip;
+}
+
+function showTooltip(element, word) {
   const definitions = wordDictionary[word];
   if (!definitions || definitions.length === 0) return;
-  
-  const tooltip = document.createElement('div');
-  tooltip.className = 'work-tip-tooltip';
-  
-  // Add definitions
-  const content = document.createElement('div');
-  content.className = 'work-tip-content';
-  
-  // Create definition elements safely without innerHTML to prevent XSS
+
+  const tooltip = ensureTooltipElement();
+
+  if (!tooltipContentElement) {
+    return;
+  }
+
+  while (tooltipContentElement.firstChild) {
+    tooltipContentElement.removeChild(tooltipContentElement.firstChild);
+  }
+
   definitions.forEach((definition, index) => {
     if (index > 0) {
       const separator = document.createElement('hr');
       separator.className = 'work-tip-separator';
-      content.appendChild(separator);
+      tooltipContentElement.appendChild(separator);
     }
     const defText = document.createElement('div');
     defText.textContent = definition;
-    content.appendChild(defText);
+    tooltipContentElement.appendChild(defText);
   });
-  
-  tooltip.appendChild(content);
-  
-  // Add hide button
-  const hideBtn = document.createElement('div');
-  hideBtn.className = 'work-tip-hide-btn';
-  hideBtn.textContent = '不再显示';
-  hideBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    hideWord(word);
-  });
-  tooltip.appendChild(hideBtn);
-  
-  document.body.appendChild(tooltip);
-  currentTooltip = tooltip;
-  
-  // Position tooltip
+
+  tooltip.dataset.word = word;
+  tooltip.style.display = 'block';
+  tooltip.style.visibility = 'hidden';
+
   const rect = element.getBoundingClientRect();
   const tooltipRect = tooltip.getBoundingClientRect();
-  
+
   let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
   let top = rect.bottom + 5;
-  
-  // Adjust if tooltip goes off screen
+
   if (left < 5) left = 5;
   if (left + tooltipRect.width > window.innerWidth - 5) {
     left = window.innerWidth - tooltipRect.width - 5;
   }
-  
+
   if (top + tooltipRect.height > window.innerHeight - 5) {
     top = rect.top - tooltipRect.height - 5;
   }
-  
+
   tooltip.style.left = left + window.scrollX + 'px';
   tooltip.style.top = top + window.scrollY + 'px';
+  tooltip.style.visibility = 'visible';
 }
 
 function hideTooltip() {
-  if (currentTooltip) {
-    currentTooltip.remove();
-    currentTooltip = null;
+  if (!currentTooltip) {
+    return;
   }
+
+  if (tooltipContentElement) {
+    while (tooltipContentElement.firstChild) {
+      tooltipContentElement.removeChild(tooltipContentElement.firstChild);
+    }
+  }
+
+  currentTooltip.style.display = 'none';
+  currentTooltip.style.visibility = 'hidden';
+  currentTooltip.dataset.word = '';
 }
 
 // Hide word functionality
@@ -410,14 +530,6 @@ document.addEventListener('mouseover', (e) => {
 document.addEventListener('mouseout', (e) => {
   if (e.target.closest('.work-tip-tooltip') && !e.relatedTarget?.closest('.work-tip-tooltip')) {
     hideTooltip();
-  }
-});
-
-// Listen for storage changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync') {
-    // Reload if settings changed
-    window.location.reload();
   }
 });
 

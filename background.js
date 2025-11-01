@@ -7,11 +7,8 @@ const STORAGE_KEYS = {
   CASE_INSENSITIVE: 'caseInsensitive'
 };
 
-// Default remote word lists
-const DEFAULT_REMOTE_LISTS = [
-  'https://example.com/dict1.json',
-  'https://example.com/dict2.json'
-];
+// In-memory cache for remote word lists data
+const remoteWordListsCache = {};
 
 // Initialize default settings and fetch default word lists
 chrome.runtime.onInstalled.addListener(async () => {
@@ -41,30 +38,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     defaults[STORAGE_KEYS.CASE_INSENSITIVE] = true; // Default to case-insensitive
   }
   
-  // Initialize default remote lists if none exist
-  if (!result[STORAGE_KEYS.REMOTE_URLS] || result[STORAGE_KEYS.REMOTE_URLS].length === 0) {
-    const remoteLists = DEFAULT_REMOTE_LISTS.map(url => ({
-      url: url,
-      title: '加载中...',
-      enabled: true,
-      wordCount: 0,
-      lastUpdate: null,
-      status: 'loading',
-      data: {}
-    }));
-    defaults[STORAGE_KEYS.REMOTE_URLS] = remoteLists;
-  }
-  
   if (Object.keys(defaults).length > 0) {
     await chrome.storage.sync.set(defaults);
   }
   
-  // Fetch default word lists
-  if (!result[STORAGE_KEYS.REMOTE_URLS] || result[STORAGE_KEYS.REMOTE_URLS].length === 0) {
-    for (let i = 0; i < DEFAULT_REMOTE_LISTS.length; i++) {
-      fetchRemoteWordList(i);
-    }
-  }
 });
 
 // Fetch remote word list
@@ -94,12 +71,14 @@ async function fetchRemoteWordList(index) {
     // Count words
     const wordCount = Object.keys(data).length;
 
-    // Update list info
+    // Store data in memory cache
+    remoteWordListsCache[index] = data;
+
+    // Update list info (without data field)
     list.title = title;
     list.wordCount = wordCount;
     list.lastUpdate = Date.now();
     list.status = 'success';
-    list.data = data;
 
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
   } catch (error) {
@@ -131,11 +110,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep the message channel open for async response
   }
   
-  if (request.action === 'fetchRemoteWordList') {
+  if (request.action === 'getRemoteWordData') {
+    // Return remote word data from memory cache
+    sendResponse({ success: true, data: remoteWordListsCache });
+  }
+  
+  if (request.action === 'fetchAndCacheRemoteWordList') {
+    // Fetch remote word list and cache it in memory
     fetch(request.url)
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
-        sendResponse({ success: true, data: data });
+        // Extract title from _title field
+        const title = data._title || request.url.split('/').pop();
+        delete data._title; // Remove _title from word data
+        
+        // Count words
+        const wordCount = Object.keys(data).length;
+        
+        // Cache data in memory
+        remoteWordListsCache[request.index] = data;
+        
+        sendResponse({ 
+          success: true, 
+          title: title,
+          wordCount: wordCount
+        });
       })
       .catch(error => {
         sendResponse({ success: false, error: error.message });

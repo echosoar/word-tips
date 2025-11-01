@@ -8,11 +8,8 @@ const STORAGE_KEYS = {
   CASE_INSENSITIVE: 'caseInsensitive'
 };
 
-// Default remote word lists
-const DEFAULT_REMOTE_LISTS = [
-  'https://example.com/dict1.json',
-  'https://example.com/dict2.json'
-];
+// Configuration constants
+const MAX_LOCAL_WORDS = 50; // Maximum number of local word entries
 
 // Load settings on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,7 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add event listeners
   document.getElementById('addRemoteUrlBtn').addEventListener('click', addRemoteUrl);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
+  document.querySelector('.remote-recom').onclick = function(e) {
+    const target = e.target;
+    const url = target.getAttribute('data-addr');
+    if (!url) return;
+    const input = document.getElementById('newRemoteUrl');
+    input.value = url;
+    input.focus();
+    input.select();
+  }
 });
+
 
 async function loadSettings() {
   try {
@@ -67,6 +75,12 @@ async function saveSettings() {
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0);
+
+    // Check word list limit (max 50 entries)
+    if (wordLists.length > MAX_LOCAL_WORDS) {
+      showMessage('本地词表不能超过 ' + MAX_LOCAL_WORDS + ' 个词汇，当前有 ' + wordLists.length + ' 个', 'error');
+      return;
+    }
 
     // Get excluded sites
     const excludedSitesText = document.getElementById('excludedSites').value;
@@ -211,8 +225,7 @@ async function addRemoteUrl() {
       enabled: true,
       wordCount: 0,
       lastUpdate: null,
-      status: 'loading',
-      data: {}
+      status: 'loading'
     };
 
     remoteLists.push(newList);
@@ -241,31 +254,26 @@ async function fetchRemoteWordList(index) {
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
     renderRemoteUrls(remoteLists);
 
-    // Fetch the JSON
-    const response = await fetch(list.url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    // Request background to fetch and cache the data
+    const response = await chrome.runtime.sendMessage({ 
+      action: 'fetchAndCacheRemoteWordList', 
+      url: list.url,
+      index: index
+    });
+
+    if (!response.success) {
+      throw new Error(response.error);
     }
 
-    const data = await response.json();
-    
-    // Extract title from _title field
-    const title = data._title || list.url.split('/').pop();
-    delete data._title; // Remove _title from word data
-
-    // Count words (excluding _title)
-    const wordCount = Object.keys(data).length;
-
-    // Update list info
-    list.title = title;
-    list.wordCount = wordCount;
+    // Update list info with data from background
+    list.title = response.title;
+    list.wordCount = response.wordCount;
     list.lastUpdate = Date.now();
     list.status = 'success';
-    list.data = data;
 
     await chrome.storage.sync.set({ [STORAGE_KEYS.REMOTE_URLS]: remoteLists });
     renderRemoteUrls(remoteLists);
-    showMessage(`词表「${title}」加载成功`, 'success');
+    showMessage(`词表「${response.title}」加载成功`, 'success');
   } catch (error) {
     // Mark as error but keep old data if exists
     const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
