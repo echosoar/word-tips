@@ -19,3 +19,7 @@ build/
 # Temporary files
 *.tmp
 *.log
+
+# Build artifacts
+package/
+*.zip
