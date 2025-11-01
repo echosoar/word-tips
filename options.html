@@ -337,6 +337,14 @@
       color: #999;
       font-style: italic;
     }
+    .remote-recom {
+      margin-top: 20px;
+    }
+    .remote-recom li {
+      margin-bottom: 8px;
+      cursor: pointer;
+      color: #1a73e8;
+    }
   </style>
 </head>
 <body>
@@ -365,6 +373,12 @@ HTML：Hypertext Markup Language，超文本标记语言"></textarea>
       </div>
       <div class="help-text">
         远程 JSON 格式示例：{ "API": "Application Programming Interface", "JSON": "JavaScript Object Notation" }
+      </div>
+      <div class="remote-recom">
+        <div>推荐远程词表（点击复制 json 地址）</div>
+        <ul>
+          <li data-addr="https://raw.githubusercontent.com/echosoar/word-tips/refs/heads/main/data/entertainment-stars.json">娱乐明星词表：娱乐明星的名字缩写，比如 zlh、txw 等的中文原名</li>
+        </ul>
       </div>
     </div>
 

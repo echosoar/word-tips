@@ -11,12 +11,6 @@ const STORAGE_KEYS = {
 // Configuration constants
 const MAX_LOCAL_WORDS = 50; // Maximum number of local word entries
 
-// Default remote word lists
-const DEFAULT_REMOTE_LISTS = [
-  'https://example.com/dict1.json',
-  'https://example.com/dict2.json'
-];
-
 // Load settings on page load
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
@@ -24,7 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add event listeners
   document.getElementById('addRemoteUrlBtn').addEventListener('click', addRemoteUrl);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
+  document.querySelector('.remote-recom').onclick = function(e) {
+    const target = e.target;
+    const url = target.getAttribute('data-addr');
+    if (!url) return;
+    const input = document.getElementById('newRemoteUrl');
+    input.value = url;
+    input.focus();
+    input.select();
+  }
 });
+
 
 async function loadSettings() {
   try {

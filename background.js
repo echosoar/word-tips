@@ -10,12 +10,6 @@ const STORAGE_KEYS = {
 // In-memory cache for remote word lists data
 const remoteWordListsCache = {};
 
-// Default remote word lists
-const DEFAULT_REMOTE_LISTS = [
-  'https://example.com/dict1.json',
-  'https://example.com/dict2.json'
-];
-
 // Initialize default settings and fetch default word lists
 chrome.runtime.onInstalled.addListener(async () => {
   const result = await chrome.storage.sync.get([
@@ -44,29 +38,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     defaults[STORAGE_KEYS.CASE_INSENSITIVE] = true; // Default to case-insensitive
   }
   
-  // Initialize default remote lists if none exist
-  if (!result[STORAGE_KEYS.REMOTE_URLS] || result[STORAGE_KEYS.REMOTE_URLS].length === 0) {
-    const remoteLists = DEFAULT_REMOTE_LISTS.map(url => ({
-      url: url,
-      title: '加载中...',
-      enabled: true,
-      wordCount: 0,
-      lastUpdate: null,
-      status: 'loading'
-    }));
-    defaults[STORAGE_KEYS.REMOTE_URLS] = remoteLists;
-  }
-  
   if (Object.keys(defaults).length > 0) {
     await chrome.storage.sync.set(defaults);
   }
   
-  // Fetch default word lists
-  if (!result[STORAGE_KEYS.REMOTE_URLS] || result[STORAGE_KEYS.REMOTE_URLS].length === 0) {
-    for (let i = 0; i < DEFAULT_REMOTE_LISTS.length; i++) {
-      fetchRemoteWordList(i);
-    }
-  }
 });
 
 // Fetch remote word list
