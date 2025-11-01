@@ -1,0 +1,88 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get current version
+        id: get_version
+        run: |
+          CURRENT_VERSION=$(jq -r '.version' manifest.json)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+      
+      - name: Increment patch version
+        id: increment_version
+        run: |
+          CURRENT_VERSION="${{ steps.get_version.outputs.current_version }}"
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+          NEW_PATCH=$((patch + 1))
+          NEW_VERSION="${major}.${minor}.${NEW_PATCH}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+      
+      - name: Update manifest.json version
+        run: |
+          NEW_VERSION="${{ steps.increment_version.outputs.new_version }}"
+          jq --arg version "$NEW_VERSION" '.version = $version' manifest.json > manifest.json.tmp
+          mv manifest.json.tmp manifest.json
+          echo "Updated manifest.json to version $NEW_VERSION"
+      
+      - name: Create package directory
+        run: |
+          mkdir -p package
+          # Copy all files except data directory
+          rsync -av --exclude='data' --exclude='.git' --exclude='.github' --exclude='package' . package/
+          echo "Packaged extension (excluded data/*.json)"
+      
+      - name: Create ZIP file
+        run: |
+          cd package
+          zip -r ../word-tips-${{ steps.increment_version.outputs.new_version }}.zip .
+          cd ..
+          echo "Created ZIP: word-tips-${{ steps.increment_version.outputs.new_version }}.zip"
+      
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add manifest.json
+          git commit -m "Bump version to ${{ steps.increment_version.outputs.new_version }}"
+          git push
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.increment_version.outputs.new_version }}
+          name: Release v${{ steps.increment_version.outputs.new_version }}
+          body: |
+            ## Word Tips - 词汇提示助手 v${{ steps.increment_version.outputs.new_version }}
+            
+            自动发布版本
+            
+            ### 安装方法
+            1. 下载 word-tips-${{ steps.increment_version.outputs.new_version }}.zip
+            2. 解压文件
+            3. 在 Chrome 浏览器中打开 `chrome://extensions/`
+            4. 开启"开发者模式"
+            5. 点击"加载已解压的扩展程序"，选择解压后的目录
+          files: |
+            word-tips-${{ steps.increment_version.outputs.new_version }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
