@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Word Tips - 词汇提示助手",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "在网页中为配置的词汇添加释义提示",
   "permissions": [
     "storage",
@@ -12,9 +12,15 @@
   ],
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_end"
     }
   ],
