@@ -111,8 +111,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.action === 'getRemoteWordData') {
-    // Return remote word data from memory cache
-    sendResponse({ success: true, data: remoteWordListsCache });
+    // Check if cache needs to be refreshed
+    (async () => {
+      try {
+        const result = await chrome.storage.sync.get([STORAGE_KEYS.REMOTE_URLS]);
+        const remoteLists = result[STORAGE_KEYS.REMOTE_URLS] || [];
+        
+        // Check if there are enabled remote lists with successful status
+        const enabledLists = remoteLists.filter(list => list.enabled !== false && list.status === 'success');
+        
+        // Check if cache is empty or missing data for any enabled list
+        let needsRefresh = false;
+        for (let i = 0; i < remoteLists.length; i++) {
+          const list = remoteLists[i];
+          if (list.enabled !== false && list.status === 'success' && !remoteWordListsCache[i]) {
+            needsRefresh = true;
+            break;
+          }
+        }
+        
+        // If cache needs refresh, fetch all enabled remote lists
+        if (needsRefresh) {
+          const fetchPromises = remoteLists.map((list, index) => {
+            if (list.enabled !== false && list.status === 'success' && !remoteWordListsCache[index]) {
+              return fetchRemoteWordList(index);
+            }
+            return Promise.resolve();
+          });
+          await Promise.all(fetchPromises);
+        }
+        
+        // Return remote word data from memory cache
+        sendResponse({ success: true, data: remoteWordListsCache });
+      } catch (error) {
+        console.error('Error loading remote word data:', error);
+        sendResponse({ success: true, data: remoteWordListsCache });
+      }
+    })();
+    return true; // Keep the message channel open for async response
   }
   
   if (request.action === 'fetchAndCacheRemoteWordList') {
