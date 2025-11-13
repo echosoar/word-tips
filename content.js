@@ -129,6 +129,35 @@ async function init() {
   }
 }
 
+// Helper function to check if an element should be ignored
+function shouldIgnoreElement(element) {
+  if (!element) return true;
+  
+  // Check if element is within ignored tags
+  if (typeof element.closest === 'function') {
+    const ignoredSelector = 'work-tip, .work-tip-tooltip, code-editor, code, textarea, input, .react-code-lines, .react-code-line';
+    if (element.closest(ignoredSelector)) {
+      return true;
+    }
+  }
+  
+  // Check parent tag name
+  const tagName = element.tagName.toLowerCase();
+  if (tagName === 'script' || tagName === 'style' || tagName === 'work-tip' || 
+      tagName === 'code-editor' || tagName === 'code' || tagName === 'textarea' || tagName === 'input') {
+    return true;
+  }
+  
+  // Check parent class
+  if (element.classList) {
+    if (element.classList.contains('react-code-lines') || element.classList.contains('react-code-line')) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 // Highlight words in the document
 function highlightWords() {
   if (isExcluded || Object.keys(wordDictionary).length === 0) {
@@ -144,15 +173,8 @@ function highlightWords() {
         const parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
         
-        if (typeof parent.closest === 'function') {
-          const owner = parent.closest('work-tip, .work-tip-tooltip');
-          if (owner) {
-            return NodeFilter.FILTER_REJECT;
-          }
-        }
-
-        const tagName = parent.tagName.toLowerCase();
-        if (tagName === 'script' || tagName === 'style' || tagName === 'work-tip') {
+        // Use helper function to check if element should be ignored
+        if (shouldIgnoreElement(parent)) {
           return NodeFilter.FILTER_REJECT;
         }
         
@@ -208,10 +230,9 @@ function processTextNode(textNode) {
   const parent = textNode.parentElement;
   
   if (!text || !parent) return;
-  if (typeof parent.closest === 'function') {
-    const owner = parent.closest('work-tip, .work-tip-tooltip');
-    if (owner) return;
-  }
+  
+  // Use helper function to check if element should be ignored
+  if (shouldIgnoreElement(parent)) return;
   
   let hasMatch = false;
   
@@ -316,15 +337,8 @@ function observeDOM() {
                 const parent = textNode.parentElement;
                 if (!parent) return NodeFilter.FILTER_REJECT;
                 
-                if (typeof parent.closest === 'function') {
-                  const owner = parent.closest('work-tip, .work-tip-tooltip');
-                  if (owner) {
-                    return NodeFilter.FILTER_REJECT;
-                  }
-                }
-
-                const tagName = parent.tagName.toLowerCase();
-                if (tagName === 'script' || tagName === 'style' || tagName === 'work-tip') {
+                // Use helper function to check if element should be ignored
+                if (shouldIgnoreElement(parent)) {
                   return NodeFilter.FILTER_REJECT;
                 }
                 
@@ -342,7 +356,8 @@ function observeDOM() {
           nodesToProcess.forEach(processTextNode);
         } else if (node.nodeType === Node.TEXT_NODE) {
           const parent = node.parentElement;
-          if (parent && typeof parent.closest === 'function' && parent.closest('work-tip, .work-tip-tooltip')) {
+          // Use helper function to check if element should be ignored
+          if (parent && shouldIgnoreElement(parent)) {
             return;
           }
           processTextNode(node);

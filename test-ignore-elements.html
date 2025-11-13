@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Ignore Elements - Word Tips</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 5px;
+    }
+    h2 {
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    h3 {
+      color: #555;
+      margin-top: 20px;
+    }
+    code {
+      background: #e8e8e8;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    pre code {
+      display: block;
+      padding: 10px;
+      overflow-x: auto;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .react-code-lines, .react-code-line {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .test-result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff;
+      border-left: 4px solid #28a745;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Ignore Elements - Word Tips Extension</h1>
+  
+  <div class="test-section">
+    <h2>Setup Instructions</h2>
+    <p>Before testing, configure the Word Tips extension with these sample words:</p>
+    <pre><code>API:Application Programming Interface
+JSON:JavaScript Object Notation
+HTML:Hypertext Markup Language
+test:A test word
+example:An example word</code></pre>
+    <p>After configuring, refresh this page to see the results.</p>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 1: Normal Text (should be highlighted)</h2>
+    <h3>✅ Expected: Words should be highlighted</h3>
+    <p>This is a normal paragraph with words like API, JSON, and HTML that should be highlighted.</p>
+    <p>Here is another test sentence with the word example in it.</p>
+    <div class="test-result">
+      <strong>Result:</strong> If you see dotted underlines on API, JSON, HTML, test, and example above, the extension is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 2: Code Element (should NOT be highlighted)</h2>
+    <h3>❌ Expected: Words inside &lt;code&gt; should NOT be highlighted</h3>
+    <p>Inline code example: <code>const API = "test"; let JSON = example;</code></p>
+    <pre><code>function example() {
+  const API = "JSON";
+  const HTML = "test";
+  return API;
+}</code></pre>
+    <div class="test-result">
+      <strong>Result:</strong> If you DO NOT see dotted underlines on API, JSON, HTML, test, or example inside code blocks above, the feature is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 3: Textarea Element (should NOT be highlighted)</h2>
+    <h3>❌ Expected: Words inside &lt;textarea&gt; should NOT be highlighted</h3>
+    <textarea rows="4">This is a textarea with API, JSON, HTML, test, and example words that should NOT be highlighted.</textarea>
+    <div class="test-result">
+      <strong>Result:</strong> If you DO NOT see dotted underlines on words inside the textarea above, the feature is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 4: Input Element (should NOT be highlighted)</h2>
+    <h3>❌ Expected: Words inside &lt;input&gt; should NOT be highlighted</h3>
+    <input type="text" value="API JSON HTML test example should not be highlighted" readonly>
+    <div class="test-result">
+      <strong>Result:</strong> If you DO NOT see dotted underlines on words inside the input field above, the feature is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 5: Code-Editor Element (should NOT be highlighted)</h2>
+    <h3>❌ Expected: Words inside &lt;code-editor&gt; should NOT be highlighted</h3>
+    <code-editor>
+      <div>const API = "test";</div>
+      <div>const JSON = "example";</div>
+      <div>const HTML = "code";</div>
+    </code-editor>
+    <div class="test-result">
+      <strong>Result:</strong> If you DO NOT see dotted underlines on words inside the code-editor element above, the feature is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 6: React Code Lines Class (should NOT be highlighted)</h2>
+    <h3>❌ Expected: Words inside elements with react-code-lines class should NOT be highlighted</h3>
+    <div class="react-code-lines">
+      <div>const API = "test";</div>
+      <div>const JSON = "example";</div>
+      <div>const HTML = "code";</div>
+    </div>
+    <div class="test-result">
+      <strong>Result:</strong> If you DO NOT see dotted underlines on words inside the react-code-lines div above, the feature is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 7: React Code Line Class (should NOT be highlighted)</h2>
+    <h3>❌ Expected: Words inside elements with react-code-line class should NOT be highlighted</h3>
+    <div class="react-code-line">This line has API, JSON, HTML, test, and example words.</div>
+    <div class="react-code-line">Another line with API and JSON words.</div>
+    <div class="test-result">
+      <strong>Result:</strong> If you DO NOT see dotted underlines on words inside the react-code-line divs above, the feature is working correctly.
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 8: Mixed Content (should partially highlight)</h2>
+    <h3>⚠️ Expected: Only words outside ignored elements should be highlighted</h3>
+    <p>Normal text with API before <code>code block with JSON</code> and HTML after code.</p>
+    <p>The word test is here, but <span class="react-code-line">example is in a react-code-line span</span>.</p>
+    <div class="test-result">
+      <strong>Result:</strong> You should see dotted underlines on API, HTML, and test (outside ignored elements), but NOT on JSON or example (inside ignored elements).
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Summary</h2>
+    <p><strong>All tests passed if:</strong></p>
+    <ul>
+      <li>✅ Words in normal text ARE highlighted with dotted underlines</li>
+      <li>❌ Words inside &lt;code&gt;, &lt;textarea&gt;, &lt;input&gt;, &lt;code-editor&gt; are NOT highlighted</li>
+      <li>❌ Words inside elements with class "react-code-lines" or "react-code-line" are NOT highlighted</li>
+    </ul>
+  </div>
+</body>
+</html>
